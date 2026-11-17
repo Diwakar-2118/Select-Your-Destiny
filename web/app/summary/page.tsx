@@ -14,6 +14,7 @@ import { BookingSteps } from '@/components/booking/BookingSteps';
 import { FareSummary } from '@/components/booking/FareSummary';
 import { useBookingGuard } from '@/components/booking/useBookingGuard';
 import { buildRequest } from '@/components/booking/request';
+import { startHostedCheckout } from '@/lib/hostedCheckout';
 
 export default function SummaryPage() {
   const ok = useBookingGuard(['trip', 'seats', 'passengers']);
@@ -100,12 +101,17 @@ export default function SummaryPage() {
       const booking = await api.createBooking(req);
       b.setBooking(booking);
       if (booking.fare) b.setFare(booking.fare);
+      // Go straight to Toucan's hosted payment page; fall back to our demo checkout if Toucan isn't configured.
+      const url = await startHostedCheckout(booking, { promoCode: b.couponCode || undefined });
+      if (url) {
+        window.location.href = url;
+        return; // keep the button in its loading state while the browser leaves
+      }
       router.push('/checkout');
     } catch (e) {
       toast.error(errorMessage(e));
-    } finally {
-      setProceeding(false);
     }
+    setProceeding(false);
   };
 
   return (
@@ -239,7 +245,7 @@ export default function SummaryPage() {
                 <FareSummary fare={b.fare} seatsCount={b.seats.length} />
               )}
               <Button fullWidth size="lg" className="mt-6 hidden lg:inline-flex" loading={proceeding} disabled={loadingFare} onClick={proceed} rightIcon={<ArrowRight className="h-5 w-5" />}>
-                Proceed to Checkout
+                Proceed to Pay
               </Button>
             </Card>
             <p className="px-2 text-center text-xs text-muted">By proceeding you agree to our cancellation policy and terms of travel.</p>
@@ -253,7 +259,7 @@ export default function SummaryPage() {
             <p className="text-xs text-muted">Grand total</p>
             <p className="text-xl font-extrabold">{inr(b.fare?.grandTotal ?? 0)}</p>
           </div>
-          <Button size="lg" loading={proceeding} disabled={loadingFare} onClick={proceed}>Proceed to Checkout</Button>
+          <Button size="lg" loading={proceeding} disabled={loadingFare} onClick={proceed}>Proceed to Pay</Button>
         </div>
       </div>
     </PageTransition>

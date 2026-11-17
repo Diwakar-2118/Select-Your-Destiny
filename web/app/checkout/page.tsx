@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Building, CalendarClock, CreditCard, Gift, Landmark, Loader2, Lock, ShieldCheck, Smartphone, Tag, Timer, Wallet as WalletIcon, Zap } from 'lucide-react';
-import { api, errorMessage, isMockMode } from '@/lib/api';
-import { savePendingPayment } from '@/lib/payment';
+import { api, errorMessage } from '@/lib/api';
+import { startHostedCheckout } from '@/lib/hostedCheckout';
 import { useAuth, useBooking } from '@/lib/store';
 import type { PaymentMethod, SavedCard } from '@/lib/types';
 import { cn, inr, inr2 } from '@/lib/utils';
@@ -169,40 +169,17 @@ export default function CheckoutPage() {
     }
     setPaying('init');
     try {
-      const init = await api.initiatePayment({ bookingId: booking.id, method, promoCode: promoMsg?.ok ? promo.trim().toUpperCase() : undefined });
-
-      // Toucan PSP: redirect to the hosted checkout. Backend mode returns redirectUrl directly;
-      // standalone (Vercel, no backend) mode creates the session through our Next.js route.
+      const promoCode = promoMsg?.ok ? promo.trim().toUpperCase() : undefined;
+      // Online methods: Toucan hosted checkout (same flow as "Proceed to Pay" on the summary page)
       if (method !== 'WALLET') {
-        let redirectUrl = init.redirectUrl;
-        let orderNo = init.gatewayOrderId;
-        const standalone = !redirectUrl && isMockMode();
-        if (standalone) {
-          const res = await fetch('/api/toucan/session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              amount: init.amount ?? booking.fare.grandTotal,
-              name: booking.passengers[0]?.name ?? '',
-              phone: booking.contactMobile,
-              email: booking.contactEmail,
-            }),
-          });
-          const j = await res.json().catch(() => null);
-          if (res.ok && j?.data?.redirectUrl) {
-            redirectUrl = j.data.redirectUrl;
-            orderNo = j.data.orderNo;
-          } else if (res.status !== 503) {
-            throw new Error(j?.message || 'Could not start payment');
-          } // 503 = Toucan not configured: fall through to the demo gateway below
-        }
-        if (redirectUrl) {
-          savePendingPayment({ orderNo, paymentId: init.paymentId, bookingId: booking.id, standalone });
-          window.location.href = redirectUrl;
+        const url = await startHostedCheckout(booking, { method, promoCode });
+        if (url) {
+          window.location.href = url;
           return;
         }
       }
-
+      // Wallet, or Toucan not configured: demo gateway
+      const init = await api.initiatePayment({ bookingId: booking.id, method, promoCode });
       setPaying('verify');
       await new Promise((r) => setTimeout(r, 1200)); // simulated gateway
       const confirmed = await api.verifyPayment({
