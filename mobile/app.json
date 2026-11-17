@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Select Your Destiny",
+    "slug": "select-your-destiny",
+    "scheme": "selectyourdestiny",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#2563EB",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.selectyourdestiny.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Used to show nearby boarding points and live bus tracking."
+      }
+    },
+    "android": {
+      "package": "com.selectyourdestiny.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#2563EB"
+      },
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "plugins": ["expo-secure-store"],
+    "extra": {
+      "apiUrl": "http://10.0.2.2:8080/api",
+      "tagline": "Book Smart. Travel Comfortably."
+    }
+  }
+}
