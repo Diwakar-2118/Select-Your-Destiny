@@ -1,0 +1,52 @@
+# Render Blueprint: Spring Boot backend for Select Your Destiny.
+# Render dashboard > New > Blueprint > pick this repo. The database is Neon (managed PostgreSQL);
+# paste its connection details into the env vars marked sync: false when Render asks.
+services:
+  - type: web
+    name: select-your-destiny-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerContext: ./backend
+    dockerfilePath: ./infra/backend.Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # Neon: jdbc:postgresql://<host>.neon.tech/<db>?sslmode=require
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Loads the starter catalog (cities, operators, routes, buses, trips) on first start
+      - key: APP_SEED
+        value: "true"
+      # Your Vercel URL, e.g. https://select-your-destiny.vercel.app (used for payment redirects)
+      - key: FRONTEND_URL
+        sync: false
+      - key: JAVA_OPTS
+        value: "-XX:MaxRAMPercentage=70 -XX:+UseSerialGC"
+      # Toucan Payments
+      - key: TOUCAN_ENABLED
+        value: "true"
+      - key: TOUCAN_CHECKOUT_URL
+        value: https://pay.testtoucanpay.in/api/auth/getpaymentsession
+      - key: TOUCAN_STATUS_URL
+        value: https://pay.toucanpay.in/api/pay/v1/checkStatus
+      - key: TOUCAN_MURL
+        value: https://merchant.testtoucanpay.in/
+      - key: TOUCAN_TERMINAL_ID
+        sync: false
+      - key: TOUCAN_MERCHANT_NUMBER
+        sync: false
+      - key: TOUCAN_MAC
+        sync: false
+      - key: TOUCAN_STATUS_TOKEN
+        sync: false

@@ -68,6 +68,11 @@ export const clearToken = () => setToken(null);
 // Remember an outage briefly so we don't wait on every call.
 let offlineUntil = 0;
 let mockMode = false;
+/**
+ * Demo fallback (mock data when the backend is unreachable). Set NEXT_PUBLIC_DEMO_MODE=false in
+ * production so real errors are shown instead of fake data.
+ */
+export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE !== 'false';
 /** True when the most recent call was served from mock data. */
 export const isMockMode = () => mockMode;
 
@@ -77,7 +82,8 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
   if (Date.now() < offlineUntil) throw new NetworkError('offline');
   const token = getToken();
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
+  // Longer timeout in production: free-tier backends can take ~30s to wake up.
+  const timer = setTimeout(() => ctrl.abort(), DEMO_MODE ? 6000 : 45000);
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
@@ -90,7 +96,7 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
       signal: ctrl.signal,
     });
   } catch {
-    offlineUntil = Date.now() + 30_000;
+    if (DEMO_MODE) offlineUntil = Date.now() + 30_000;
     throw new NetworkError('Backend unreachable');
   } finally {
     clearTimeout(timer);
@@ -111,6 +117,7 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
 
 /** Call the real API; if unreachable (or a mock-token session), serve mock data instead. */
 async function withFallback<T>(real: () => Promise<T>, fallback: () => T | Promise<T>): Promise<T> {
+  if (!DEMO_MODE) return real();
   const token = getToken();
   if (token?.startsWith('mock.')) {
     // Session was created offline – stay in mock mode for consistency.

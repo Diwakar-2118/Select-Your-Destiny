@@ -46,6 +46,10 @@ public class DataSeeder implements CommandLineRunner {
     private final BookingService bookingService;
     private final PasswordEncoder encoder;
 
+    /** Set ADMIN_PASSWORD in production; the default is only for local development. */
+    @Value("${app.admin-password:Admin@123}")
+    private String adminPassword;
+
     @Value("${app.seed:true}")
     private boolean seed;
 
@@ -77,7 +81,7 @@ public class DataSeeder implements CommandLineRunner {
         User demo = userRepo.save(User.builder().name("Demo Traveller").email("demo@destiny.com").mobile("9876543210")
                 .password(encoder.encode("Demo@123")).role(Role.USER).walletBalance(500).build());
         userRepo.save(User.builder().name("Destiny Admin").email("admin@destiny.com").mobile("9000000001")
-                .password(encoder.encode("Admin@123")).role(Role.ADMIN).build());
+                .password(encoder.encode(adminPassword)).role(Role.ADMIN).build());
         User riya = userRepo.save(User.builder().name("Riya Sharma").email("riya@destiny.com").mobile("9811122233")
                 .password(encoder.encode("Riya@123")).role(Role.USER).walletBalance(150).build());
 
