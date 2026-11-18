@@ -60,6 +60,24 @@ public class ToucanClient {
 
     public ToucanClient(ObjectMapper om) { this.om = om; }
 
+    /**
+     * Normalises credentials (stray spaces / line breaks from copy-paste break the token) and logs a
+     * safe summary of the configuration — never the secret values themselves.
+     */
+    @jakarta.annotation.PostConstruct
+    void init() {
+        terminalId = terminalId.trim();
+        merchantNumber = merchantNumber.trim();
+        String rawMac = mac;
+        mac = mac.replaceAll("\\s+", "").replaceAll("^\"|\"$", "");
+        statusToken = statusToken.replaceAll("\\s+", "").replaceFirst("(?i)^Bearer", "");
+        String[] parts = mac.split("\\.");
+        log.info("Toucan config: enabled={} terminalId={} macParts={} macSignatureLength={} (RS256 expects 342) "
+                        + "macHadWhitespaceOrQuotes={} statusTokenSet={} checkoutUrl={}",
+                isEnabled(), terminalId, parts.length, parts.length == 3 ? parts[2].length() : -1,
+                !rawMac.equals(mac), !statusToken.isBlank(), checkoutUrl);
+    }
+
     /** True when Toucan is switched on and has the minimum credentials. */
     public boolean isEnabled() { return enabled && !terminalId.isBlank() && !mac.isBlank(); }
 
