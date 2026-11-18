@@ -107,7 +107,9 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
   } catch {
     json = null;
   }
-  if (res.status >= 502 && res.status <= 504) throw new NetworkError('Gateway unavailable');
+  // 502-504 with no JSON body = proxy/backend down. With a JSON body it's a real API error
+  // (e.g. the payment provider rejected the request), so show its message.
+  if (res.status >= 502 && res.status <= 504 && !json) throw new NetworkError('Gateway unavailable');
   if (!res.ok || (json && json.success === false)) {
     throw new ApiError(json?.message || `Request failed (${res.status})`, res.status);
   }
