@@ -57,3 +57,4 @@ web-build/
 
 # Docker
 pgdata/
+.neon

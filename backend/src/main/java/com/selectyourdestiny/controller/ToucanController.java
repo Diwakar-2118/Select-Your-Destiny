@@ -55,6 +55,7 @@ public class ToucanController {
                                                @RequestParam(value = "pspRefNo", required = false) String pspRefNo,
                                                @RequestParam(value = "custRefNo", required = false) String custRefNo) {
         String order = orderNo != null ? orderNo : toucan.orderNoFromCallback(pspRefNo, custRefNo);
+        String frontendUrl = this.frontendUrl.replaceAll("/+$", ""); // tolerate a trailing slash in FRONTEND_URL
         String target;
         try {
             Payment p = paymentService.confirmToucan(order);
